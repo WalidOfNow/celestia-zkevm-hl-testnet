@@ -77,7 +77,7 @@ func SetupZKIsm(ctx context.Context, broadcaster *Broadcaster, ethClient *ethcli
 }
 
 // SetupWithIsm deploys the cosmosnative Hyperlane components using the provided ism identifier.
-func SetupWithIsm(ctx context.Context, broadcaster *Broadcaster, ismID util.HexAddress, isMultisigIsm bool) {
+func SetupWithIsm(ctx context.Context, broadcaster *Broadcaster, ismID util.HexAddress, isMultisigIsm bool, localDomain uint32) {
 	var hooksID util.HexAddress
 	var mailboxID util.HexAddress
 
@@ -88,7 +88,7 @@ func SetupWithIsm(ctx context.Context, broadcaster *Broadcaster, ismID util.HexA
 		msgCreateMailBox := coretypes.MsgCreateMailbox{
 			Owner:        broadcaster.address.String(),
 			DefaultIsm:   ismID,
-			LocalDomain:  69420,
+			LocalDomain:  localDomain,
 			DefaultHook:  nil,
 			RequiredHook: nil,
 		}
@@ -133,7 +133,7 @@ func SetupWithIsm(ctx context.Context, broadcaster *Broadcaster, ismID util.HexA
 		msgCreateMailBox := coretypes.MsgCreateMailbox{
 			Owner:        broadcaster.address.String(),
 			DefaultIsm:   ismID,
-			LocalDomain:  69420,
+			LocalDomain:  localDomain,
 			DefaultHook:  &hooksID,
 			RequiredHook: &hooksID,
 		}

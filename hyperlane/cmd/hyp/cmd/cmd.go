@@ -48,9 +48,9 @@ func NewRootCmd() *cobra.Command {
 
 func getDeployZKIsmStackCmd() *cobra.Command {
 	deployCmd := &cobra.Command{
-		Use:   "deploy-zkism [celestia-grpc] [evm-rpc] [ev-node-rpc]",
+		Use:   "deploy-zkism [celestia-grpc] [evm-rpc] [ev-node-rpc] [local-domain]",
 		Short: "Deploy cosmosnative hyperlane components using a ZKExecutionIsm to a remote service via gRPC",
-		Args:  cobra.ExactArgs(3),
+		Args:  cobra.ExactArgs(4),
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx := cmd.Context()
 			enc := encoding.MakeConfig(app.ModuleEncodingRegisters...)
@@ -73,18 +73,25 @@ func getDeployZKIsmStackCmd() *cobra.Command {
 			evnodeRpcAddr := args[2]
 			evnode := evclient.NewClient(fmt.Sprintf("http://%s", evnodeRpcAddr))
 
+			// Parse local domain
+			localDomain, err := strconv.ParseUint(args[3], 10, 32)
+			if err != nil {
+				log.Fatalf("failed to parse local-domain: %v", err)
+			}
+
 			ismID := SetupZKIsm(ctx, broadcaster, client, evnode)
-			SetupWithIsm(ctx, broadcaster, ismID, false)
+			SetupWithIsm(ctx, broadcaster, ismID, false, uint32(localDomain))
 		},
 	}
+
 	return deployCmd
 }
 
 func getDeployNoopIsmStackCmd() *cobra.Command {
 	deployCmd := &cobra.Command{
-		Use:   "deploy-noopism [celestia-grpc]",
+		Use:   "deploy-noopism [celestia-grpc] [local-domain]",
 		Short: "Deploy cosmosnative hyperlane components using a NoopIsm to a remote service via gRPC",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx := cmd.Context()
 			enc := encoding.MakeConfig(app.ModuleEncodingRegisters...)
@@ -104,15 +111,22 @@ func getDeployNoopIsmStackCmd() *cobra.Command {
 			res := broadcaster.BroadcastTx(ctx, &msgCreateNoopISM)
 			ismID := parseIsmIDFromNoopISMEvents(res.Events)
 
-			SetupWithIsm(ctx, broadcaster, ismID, false)
+			// Parse local domain
+			localDomain, err := strconv.ParseUint(args[1], 10, 32)
+			if err != nil {
+				log.Fatalf("failed to parse local-domain: %v", err)
+			}
+
+			SetupWithIsm(ctx, broadcaster, ismID, false, uint32(localDomain))
 		},
 	}
+
 	return deployCmd
 }
 
 func getDeployMultisigIsmStackCmd() *cobra.Command {
 	deployCmd := &cobra.Command{
-		Use:   "deploy-multisigism [celestia-grpc] [validators] [threshold]",
+		Use:   "deploy-multisigism [celestia-grpc] [validators] [threshold] [local-domain]",
 		Short: "Deploy cosmosnative hyperlane components using a MerkleRootMultisigIsm to a remote service via gRPC",
 		Long: `Deploy cosmosnative hyperlane components using a MerkleRootMultisigIsm.
 		
@@ -120,7 +134,7 @@ Validators should be provided as comma-separated ethereum-style addresses (20 by
 Example: 0x1234567890123456789012345678901234567890,0xabcdefabcdefabcdefabcdefabcdefabcdefabcd
 
 Threshold is the number of validator signatures required.`,
-		Args: cobra.ExactArgs(3),
+		Args: cobra.ExactArgs(4),
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx := cmd.Context()
 			enc := encoding.MakeConfig(app.ModuleEncodingRegisters...)
@@ -152,6 +166,12 @@ Threshold is the number of validator signatures required.`,
 				log.Fatalf("threshold (%d) cannot be greater than number of validators (%d)", threshold, len(validators))
 			}
 
+			// Parse local domain
+			localDomain, err := strconv.ParseUint(args[3], 10, 32)
+			if err != nil {
+				log.Fatalf("failed to parse local-domain: %v", err)
+			}
+
 			msgCreateMultisigISM := ismtypes.MsgCreateMerkleRootMultisigIsm{
 				Creator:    broadcaster.address.String(),
 				Validators: validators,
@@ -168,9 +188,10 @@ Threshold is the number of validator signatures required.`,
 			log.Printf("Transaction response log: %s\n", res.RawLog)
 			ismID := parseIsmIDFromMultisigISMEvents(res.Events)
 
-			SetupWithIsm(ctx, broadcaster, ismID, true)
+			SetupWithIsm(ctx, broadcaster, ismID, true, uint32(localDomain))
 		},
 	}
+
 	return deployCmd
 }
 
